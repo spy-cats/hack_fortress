@@ -35,15 +35,24 @@
 (defn new-plan! []
   (reset! cur-plan (profiling "plan" planning/make-plan :ai0 [:hacking :pc1] @s/game-state)))
 
+(defn thing-at [pos]
+  (first (filter #(= pos (:pos (second %))) (:things @s/game-state))))
+
+(defn remove-at! [pos]
+  (if-let [thing-id (first (thing-at pos))]
+    (swap! s/game-state update-in [:things] dissoc thing-id)))
+
 (defn onclick! [e]
   (let [pos (render/to-coords (.-offsetX e) (.-offsetY e))
         thing (case (.-value (.querySelector js/document "input[type=radio]:checked"))
                 "wall" :wall
                 "door" :door
-                ;"remove" nil
+                "remove" nil
                 )]
-    (swap! s/game-state update-in [:things] into {(gensym) {:type thing :pos pos}}))
-  (new-plan!))
+    (if (nil? thing)
+      (remove-at! pos)
+      (swap! s/game-state update-in [:things] into {(gensym) {:type thing :pos pos}}))
+  (new-plan!)))
 
 (defn test-interface []
   ;(println "wtf")

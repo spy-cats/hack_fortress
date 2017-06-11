@@ -15,7 +15,8 @@
         j' (map #(+ j %) [-1 0 1])
         :when (not= [i j] [i' j'])
         :when (< i mi)
-        :when (< j mj)]
+        :when (< j mj)
+        :when (or (= i i') (= j j'))]
     [i' j']))
 
 

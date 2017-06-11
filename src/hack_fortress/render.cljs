@@ -41,7 +41,8 @@
 (def thing-captions {:person "a"
                      :pc "P"
                      :provider "@"
-                     :wall :w})
+                     :wall :wall
+                     :door :door})
 
 (defn draw-line! [from to color]
   (.save c-ctx)
@@ -85,9 +86,12 @@
 (defn thing! [type pos]
   (let [[x y] (map * block pos)]
     (case type
-      :w (do
+      :wall (do
               (.fillRect c-ctx x y block-x block-y))
-      :s nil
+
+      :door (do
+              (.strokeRect c-ctx x (+ y (/ block-x 5)) (/ block-x 2) (* 3 (/ block-y 5)))
+              (.strokeRect c-ctx (+ x (/ block-x 2)) (+ y (/ block-x 5)) (/ block-x 2) (* 3 (/ block-y 5))))
       (do
         ;(.strokeRect c-ctx x y (- block-x 1) (- block-y 1))
 

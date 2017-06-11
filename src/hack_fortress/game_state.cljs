@@ -12,7 +12,7 @@
                [:s :s :s :s :s :s :s :s]]))
 
 (defonce game-state (atom
-                      {:map-size [8 8]
+                      {:map-size [12 8]
                        :things   (into things
                                        {:guy1  {:type   :person
                                                 :pos    [1 6]
