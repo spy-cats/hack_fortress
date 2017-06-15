@@ -22,7 +22,8 @@
    (a map of edge to distance); estimate is an heuristic for the actual
    distance. Accepts a named option: :monotonic (default to true).
    Returns the path if found or nil."
-  [edges ;estimate
+  [edges  ;; edges: {[x y] dist ...}
+   ;estimate
     start goal & {mono :monotonic :or {mono true}}]
   (let [f (memoize #(estimate % goal)) ; unsure the memoization is worthy
         neighbours (reduce (fn [m [a b]] (assoc m a (conj (m a #{}) b)))

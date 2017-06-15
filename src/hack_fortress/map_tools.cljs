@@ -16,7 +16,7 @@
         :when (not= [i j] [i' j'])
         :when (< i mi)
         :when (< j mj)
-        :when (or (= i i') (= j j'))]
+        :when (or (= i i') (= j j'))] ; FIXME optimize?
     [i' j']))
 
 

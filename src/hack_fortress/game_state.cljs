@@ -37,7 +37,7 @@
                                                 :action   [:mining]}
 
                                         :prov1 {:type :provider
-                                                :pos  [7 0]}})
+                                                :pos  [4 0]}})
 
                        :players  {:human {:type :human
                                           :todo []

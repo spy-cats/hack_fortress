@@ -14,10 +14,10 @@
   (render/clear!)
   (render/things! (:things @s/game-state) @s/game-state)
   (if @cur-plan
-    (render/plan! (:pos (:guy2 (:things @s/game-state))) @cur-plan))
+    (render/plan! @cur-plan))
   (set! (.-innerHTML render/state#) (str
-                               ;"<ul>" (players-info @s/game-state) "</ul>"
-                               ;"<hr>"
+                               "<ul>" (apply str (map #(str "<li>" % "</li>") @cur-plan)) "</ul>"
+                               "<hr>"
                                "<ul>" (render/things-info @s/game-state) "</ul>"
                                ;"<hr>"
                                ;"<ul>" (clojure.string/join (map #(str "<li>" % "</li>") (:messages @s/game-state))) "</ul>"

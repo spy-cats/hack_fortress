@@ -38,11 +38,11 @@
 ;  (doseq [[[i j] thing] m]
 ;    (render-thing! thing [i j])))
 
-(def thing-captions {:person "a"
-                     :pc "P"
+(def thing-captions {:person   "a"
+                     :pc       "P"
                      :provider "@"
-                     :wall :wall
-                     :door :door})
+                     :wall     :wall
+                     :door     :door})
 
 (defn draw-line! [from to color]
   (.save c-ctx)
@@ -56,12 +56,9 @@
   (.closePath c-ctx)
   (.restore c-ctx))
 
-(defn plan! [start plan]
-  ;(println plan)
-  (let [moves (map second (filter #(= (first %) :move) plan))
-        s-ds (map vector (cons start moves) moves)]
-    (doseq [[s d] s-ds]
-      (draw-line! s d "#673ab7"))))
+(defn plan! [plan]
+  (doseq [[[s d] act-type] plan]
+    (draw-line! s d "#673ab7")))
 
 (defmulti render-trait! first)
 (defmethod render-trait! :default [arg thing] nil)
