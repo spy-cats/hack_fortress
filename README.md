@@ -1,39 +1,24 @@
-# hack_fortress
+# Hack Fortress
 
-FIXME: Write a one-line description of your library/project.
+Hack Fortress is a cyberpunk social engineering colony sim game, basically Dwarf Fortress meets Kevin Mitnick,
+and it features PvP combat, amazing AI, and all kinds of glorious stuff.
 
-## Overview
+Okay, it's not really such a game yet. But hopefully it will be, one day.
 
-FIXME: Write a paragraph about the library/project and highlight its goals.
+HF is built around the idea of **space** in computer games,
+and will model, first of all, physical, network and social spaces.
 
-## Setup
+As such an ambitious project will probably never reach its full potential, I decided to pursue a few smaller projects
+which will hopefully eventually converge in an interesting computer game. The list is now amounts to:
 
-To get an interactive development environment run:
+1. **AI interactive playground** to explore the planning AI based on the A* algorithm, which I want to use in the game.
+2. **Cyberpunk tower defense** game to test the AI and have some fun with spaces.
 
-    lein figwheel
+## Can I play it somehow?
 
-and open your browser at [localhost:3449](http://localhost:3449/).
-This will auto compile and send all changes to the browser without the
-need to reload. After the compilation process is complete, you will
-get a Browser Connected REPL. An easy way to try it is:
-
-    (js/alert "Am I connected?")
-
-and you should see an alert in the browser window.
-
-To clean all compiled files:
-
-    lein clean
-
-To create a production build run:
-
-    lein do clean, cljsbuild once min
-
-And open your browser in `resources/public/index.html`. You will not
-get live reloading, nor a REPL. 
+Not yet :-(
 
 ## License
 
-Copyright © 2014 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.
+This project is licensed using GPL-3.0. You can use the code freely provided that you share your derivative code
+and the extent of your changes with the community. For an exception, contact the author.
