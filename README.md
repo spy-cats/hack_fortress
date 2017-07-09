@@ -20,5 +20,5 @@ Not yet :-(
 
 ## License
 
-This project is licensed using GPL-3.0. You can use the code freely provided that you share your derivative code
+This project is licensed using GPL-3.0+. You can use the code freely provided that you share your derivative code
 and the extent of your changes with the community. For an exception, contact the author.

@@ -1,7 +1,7 @@
 (defproject hack_fortress "0.1.0-SNAPSHOT"
   :description "Hack Fortress is a cyberpunk social engineering colony sim game"
   :url ""
-  :license {:name "GPL-3.0"
+  :license {:name "GPL-3.0+"
             :url "http://www.gnu.org/licenses/gpl-3.0.txt"}
 
   :min-lein-version "2.7.1"
@@ -11,7 +11,10 @@
                  [org.clojure/core.async  "0.3.442"
                   :exclusions [org.clojure/tools.reader]]
                  [figwheel-sidecar "0.5.10"]
-                 [tailrecursion/cljs-priority-map "1.2.0"]]
+                 [tailrecursion/cljs-priority-map "1.2.0"]
+
+                 [impi "0.0.10"]
+                 [rum "0.10.8"]]
 
   :plugins [                                                ;[lein-figwheel "0.5.10"]
             [lein-cljsbuild "1.1.5" :exclusions [[org.clojure/clojure]]]]
@@ -27,14 +30,14 @@
                 ;; the presence of a :figwheel configuration here
                 ;; will cause figwheel to inject the figwheel client
                 ;; into your build
-                :figwheel {:on-jsload "hack_fortress.core/on-js-reload"
+                :figwheel {;:on-jsload "hack_fortress.sim.core/on-js-reload"
                            ;; :open-urls will pop open your application
                            ;; in the default browser once Figwheel has
                            ;; started and complied your application.
                            ;; Comment this out once it no longer serves you.
                            :open-urls ["http://localhost:3449/index.html"]}
 
-                :compiler {:main hack_fortress.core
+                :compiler {:main hack_fortress.sim.core
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/hack_fortress.js"
                            :output-dir "resources/public/js/compiled/out"
