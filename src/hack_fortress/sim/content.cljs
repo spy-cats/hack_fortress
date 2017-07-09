@@ -5,6 +5,7 @@
   (util/indexed-by :id
     [{:id :wall
       :name "Wall"
+      :types #{:impassable}
       :char "X"}
 
      {:id :door

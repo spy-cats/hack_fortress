@@ -1,6 +1,7 @@
 (ns hack-fortress.sim.core
   (:require [hack-fortress.sim.render :as render]
             [hack-fortress.sim.util :as util :refer [log values]]
+            [hack-fortress.sim.content :as content]
             [clojure.set :as set]))
 
 
@@ -65,6 +66,20 @@
 (defn ui-evolve! [fn & args]
   (apply swap! state update :ui fn args))
 
+(defn check-tasks-system [state]
+  (let [tasks (util/values (-> state :ui :todo-list))
+        constructions (util/indexed-by :pos (util/all-typed :construction state))
+        classify-task #(let [c (constructions (:pos %))]
+                         (cond
+                           (nil? c) :possible
+                           (not= (:construction c) (:construction %)) :impossible
+                           (util/of? :under-construction c) :in-progress
+                           :default :done))
+        ; TODO: task conflicts
+        tasks (map #(assoc % :state (classify-task %)) tasks)]
+    (assoc-in state [:ui :todo-list] (util/indexed-by :id tasks))))
+
+
 (defn assign-tasks-system [state]
   (let [workers (util/all-typed :worker state)
         free-workers (map :id (filter (complement :task) workers))
@@ -104,7 +119,12 @@
                 :types  #{:events_bag}
                 :events work-events}]))))
 
-; we have "spaces" (should not conflict)
+; we have "spaces" (should not conflict:)
+; e.g. #impassable & new constructions
+;      #impassable & #being
+;      new constructions & #being (how????)
+;      #being & #being
+;      ........
 
 (defn apply-builds-system [state]
   (let [[builds other-events] (util/split-by-pred #(= (:type %) :build) (-> state :_work_events_bag :events))
@@ -115,7 +135,10 @@
                                    (util/values state)))
         to-create (map #(cons (gensym) %)
                        (set/difference pos-types (set (map rest already-in-progress))))
-        ; TODO: check conflicts with existing and new entities
+
+        constructions (set (map :pos (util/all-typed :construction state)))
+        [denied to-create] (util/split-by-pred #(contains? constructions (second %)) to-create)
+
         created-entities (for [[id pos construction] to-create]
                            [id {:id           id
                                 :pos          pos
@@ -129,20 +152,40 @@
 
         to-update-fns (apply comp
                              (for [[id pos construction] to-update]
-                               #(update-in % [id :progress] inc)))
-
-        ; TODO: check whether constuction is done
-        ]
+                               #(update-in % [id :progress] inc)))]
     (-> state
-        (ulog (str "build events done: " (count builds) ", created: " (count created-entities)))
+        (ulog (for [c created-entities]
+                (str "started " c)))
+        (ulog (for [d denied]
+                (str "denied " d)))
         (into created-entities)
         to-update-fns
         (assoc-in [:_work_events_bag :events] other-events))))
 
+(defn update-in-many [state path-fns]
+  ((apply comp (for [[p fn] path-fns]
+                 #(update-in % p fn)))
+    state))
+
+(defn apply-finish-build-system [state]
+  (let [finished (filter #(>= (:progress %) 10) (util/all-typed :under-construction state))
+        updates (for [{:keys [id]} finished]
+                  [[id] #(-> %
+                             (dissoc :progress)
+                             (update :types disj :under-construction)
+                             (update :types into (-> % :construction content/constructions :types)))])]
+    (-> state
+        (ulog (for [d finished]
+                (str "finished " finished)))
+        (update-in-many updates))))
+
 (def systems [#(update-in % [:world :age] inc)
+              ; TODO: check done and impossible tasks
+              check-tasks-system
               assign-tasks-system
               perform-tasks-system
-              apply-builds-system])
+              apply-builds-system
+              apply-finish-build-system])
 
 (def all-systems (apply comp (reverse systems)))
 
@@ -158,7 +201,7 @@
 (render/init! (js/document.getElementById "app") ui-evolve!)
 
 (defonce _ [
-            (js/setInterval #(swap! state evolve-state) 1000)
+            (js/setInterval #(swap! state evolve-state) 300)
             (render/every-animation-frame! state)
             ])
 
