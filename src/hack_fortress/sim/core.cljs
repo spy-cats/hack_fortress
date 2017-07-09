@@ -66,6 +66,11 @@
 (defn ui-evolve! [fn & args]
   (apply swap! state update :ui fn args))
 
+(defn update-in-many [state path-fns]
+  ((apply comp (for [[p fn] path-fns]
+                 #(update-in % p fn)))
+    state))
+
 (defn check-tasks-system [state]
   (let [tasks (util/values (-> state :ui :todo-list))
         constructions (util/indexed-by :pos (util/all-typed :construction state))
@@ -80,10 +85,17 @@
     (assoc-in state [:ui :todo-list] (util/indexed-by :id tasks))))
 
 
+
 (defn assign-tasks-system [state]
-  (let [workers (util/all-typed :worker state)
-        free-workers (map :id (filter (complement :task) workers))
-        unassigned-tasks (map :id (filter #(nil? (:assignee %)) (values (-> state :ui :todo-list))))
+  (let [tasks (-> state :ui :todo-list)
+        cancelled? #(contains? #{:impossible :done} (:state %))
+        workers (util/all-typed :worker state)
+        cancel-worker-tasks (map :id (filter #(-> % :task tasks cancelled?) workers))
+
+        free-workers (into
+                       (map :id (filter (complement :task) workers))
+                       cancel-worker-tasks)
+        unassigned-tasks (map :id (filter #(nil? (:assignee %)) (filter (complement cancelled?) (values tasks))))
         assignations (map vector free-workers unassigned-tasks)
         as-fns (apply comp (for [[wid tid] assignations]
                              #(-> %
@@ -92,6 +104,8 @@
     (-> state
         (ulog (for [[w t] assignations]
                 (str w " starts " t)))
+        (update-in-many (for [id cancel-worker-tasks]
+                          [[id :task] (constantly nil)]))
         as-fns)))
 
 
@@ -161,11 +175,6 @@
         (into created-entities)
         to-update-fns
         (assoc-in [:_work_events_bag :events] other-events))))
-
-(defn update-in-many [state path-fns]
-  ((apply comp (for [[p fn] path-fns]
-                 #(update-in % p fn)))
-    state))
 
 (defn apply-finish-build-system [state]
   (let [finished (filter #(>= (:progress %) 10) (util/all-typed :under-construction state))
