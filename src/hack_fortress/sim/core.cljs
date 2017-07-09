@@ -29,6 +29,7 @@
 
                     {:id            :ui
                      :types         #{:ui}
+                     :selected      nil    ; [:entity pos] | [:build type]
                      :current-build :wall
                      :todo-list     {}
                      :log           [[0 "game begins"]]
