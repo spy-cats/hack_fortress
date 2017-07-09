@@ -16,9 +16,9 @@
         running? (:running? ui)]
     [:div {:style {:margin-bottom "5px"}}
      "Age: " (:age world) " "
-       [:button {:style    (if (not running?) chosen-button-style {})
-                 :on-click #(ui-evolve! (fn [st] (assoc st :running? (not running?))))}
-        "pause"]]))
+     [:button {:style    (if (not running?) chosen-button-style {})
+               :on-click #(ui-evolve! (fn [st] (assoc st :running? (not running?))))}
+      "pause"]]))
 
 
 (rum/defc bottom-menu < rum/reactive [ui-state-cursor ui-evolve!]
@@ -35,24 +35,25 @@
   (let [{[width height]                    :size
          [tw th]                           :tile
          {:keys [current-build highlight]} :ui
-         :keys                             [characters]} (rum/react renderer-state)]
+         :keys                             [entities]} (rum/react renderer-state)]
     [:svg {:width (* width tw) :height (* height th)}
      [:rect {:width "100%" :height "100%" :fill "black"}]
      [:g {:fill "white" :font-family "Courier New" :font-size "16px" :text-anchor "end"}
       (for [i (range width)
             j (range height)
-            :let [char (or (characters [i j])
-                           ".")]]
+            :let [char (entities [i j])]]
         [:text
-         {:key      [i j]
+         {:key      (or (:id char) [i j])
           :x        (* tw i)
           :y        (* th j)
-          :fill     (if (= highlight [i j]) "red" "white")
+          :fill     (cond (= highlight [i j]) "red"
+                          (util/of? :under-construction char) "green"
+                          :default "white")
           :on-click #(let [t (gensym)] (ui-evolve! update :todo-list conj [t {:id           t
                                                                               :type         :build
                                                                               :pos          [i j]
                                                                               :construction current-build}]))}
-         char])]]))
+         (content/get-render-character char)])]]))
 
 (rum/defc todo-list < rum/reactive [ui-state-cursor ui-evolve!]
   [:ul
@@ -78,7 +79,7 @@
      (game-screen renderer-state ui-evolve!)
      (bottom-menu (rum/cursor renderer-state :ui) ui-evolve!)]
 
-    [:div {:style {:flex-grow "1" }}
+    [:div {:style {:flex-grow "1"}}
      [:div {:style {:height "200px" :overflow-y "scroll"}}
       (todo-list (rum/cursor renderer-state :ui) ui-evolve!)]
      [:div {:style {:height "200px" :overflow-y "scroll"}}
@@ -95,9 +96,9 @@
     :tile [10 16]
     :world (:world state)
     :ui (:ui state)
-    :characters (into {} (map #(vector (:pos %) "B")
-                              (filter (util/of? :being)
-                                      (map second state))))))
+    :entities (into {} (for [e (filter (util/of? #{:being :construction})
+                                       (map second state))]
+                         [(:pos e) e]))))
 
 (defn every-animation-frame! [state-atom]
   (swap! renderer-state (partial recalc-render @state-atom))

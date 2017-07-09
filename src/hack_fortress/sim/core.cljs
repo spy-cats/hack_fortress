@@ -1,6 +1,7 @@
 (ns hack-fortress.sim.core
   (:require [hack-fortress.sim.render :as render]
-            [hack-fortress.sim.util :as util :refer [log values]]))
+            [hack-fortress.sim.util :as util :refer [log values]]
+            [clojure.set :as set]))
 
 
 (def default-state [{:id    :world
@@ -19,6 +20,11 @@
                     {:id    :mob3
                      :types #{:being :worker}
                      :pos   [8 1]}
+
+                    {:id           :wall1
+                     :types        #{:construction :impassable}
+                     :construction :wall
+                     :pos          [2 2]}
 
                     {:id            :ui
                      :types         #{:ui}
@@ -60,7 +66,7 @@
   (apply swap! state update :ui fn args))
 
 (defn assign-tasks-system [state]
-  (let [workers (util/find :worker state)
+  (let [workers (util/all-typed :worker state)
         free-workers (map :id (filter (complement :task) workers))
         unassigned-tasks (map :id (filter #(nil? (:assignee %)) (values (-> state :ui :todo-list))))
         assignations (map vector free-workers unassigned-tasks)
@@ -73,12 +79,17 @@
                 (str w " starts " t)))
         as-fns)))
 
+
+(defn close? [a b]
+  (let [[x1 y1] (:pos a)
+        [x2 y2] (:pos b)]
+    (>= 1 (apply + (map Math/abs [(- x1 x2) (- y1 y2)])))))
+
 (defn perform-tasks-system [state]
-  (let [workers (util/find :worker state)
+  (let [workers (util/all-typed :worker state)
         with-tasks (filter :_task (map #(assoc % :_task (-> state :ui :todo-list (get (:task %))))
                                        workers))
-        {to-move false
-         to-work true} (group-by #(= (-> % :_task :pos) (:pos %)) with-tasks)
+        [to-work to-move] (util/split-by-pred #(close? (:_task %) %) with-tasks)
         to-move-upds (apply comp
                             (for [w to-move]
                               #(assoc-in %
@@ -95,32 +106,53 @@
 
 ; we have "spaces" (should not conflict)
 
-(defn apply-work-system [state]
-  (let [events (-> state :_work_events_bag :events)
+(defn apply-builds-system [state]
+  (let [[builds other-events] (util/split-by-pred #(= (:type %) :build) (-> state :_work_events_bag :events))
+        pos-types (set (map #(map % [:pos :construction]) builds))
+        already-in-progress (map #(map % [:id :pos :construction])
+                                 (filter
+                                   (util/of? :under-construction)
+                                   (util/values state)))
+        to-create (map #(cons (gensym) %)
+                       (set/difference pos-types (set (map rest already-in-progress))))
+        ; TODO: check conflicts with existing and new entities
+        created-entities (for [[id pos construction] to-create]
+                           [id {:id           id
+                                :pos          pos
+                                :construction construction
+                                :types        #{:under-construction :construction}
+                                :progress     0}])
 
-        ; find all already existing entities (or entities-in-progress)
-        ; find all entities that should be created
-        ; discard conflicting
+        to-update (into
+                    (filter #(contains? pos-types (rest %)) already-in-progress)
+                    to-create)
 
+        to-update-fns (apply comp
+                             (for [[id pos construction] to-update]
+                               #(update-in % [id :progress] inc)))
+
+        ; TODO: check whether constuction is done
         ]
     (-> state
-        (ulog (str "work done: " events))
-        (dissoc :_work_events_bag))))
+        (ulog (str "build events done: " (count builds) ", created: " (count created-entities)))
+        (into created-entities)
+        to-update-fns
+        (assoc-in [:_work_events_bag :events] other-events))))
 
 (def systems [#(update-in % [:world :age] inc)
               assign-tasks-system
               perform-tasks-system
-              apply-work-system])
+              apply-builds-system])
 
 (def all-systems (apply comp (reverse systems)))
 
 (defn evolve-state [state]
   (if (-> state :ui :running?)
     (try
-      (all-systems state)
+      (doall (all-systems state))
       (catch js/Error e
         (js/console.error e)
-        (update-in state [:ui :running?] false)))
+        (assoc-in state [:ui :running?] false)))
     state))
 
 (render/init! (js/document.getElementById "app") ui-evolve!)
