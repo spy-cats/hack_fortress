@@ -45,7 +45,7 @@
                              :type         :build
                              :pos          [i j]
                              :construction (second selected)}]))
-    (ui-evolve! assoc :selected [:entity id])))
+    (ui-evolve! assoc :selected (if id [:entity id] nil))))
 
 (rum/defc game-screen < rum/reactive [renderer-state ui-evolve!]
   (let [{[width height]               :size
@@ -63,7 +63,7 @@
           :x        (* tw i)
           :y        (* th j)
           :fill     (cond (= highlight [i j]) "red"
-                          (= selected [:entity (:id char)]) "red"
+                          (= selected [:entity (:id char)]) "yellow"
                           (util/of? :under-construction char) "green"
                           :default "white")
           :on-click #(on-click! ui-evolve! [i j] (:id char) selected)}
@@ -127,9 +127,9 @@
     :state state
     :world (:world state)
     :ui (:ui state)
-    :entities (into {} (for [e (filter (util/of? #{:being :construction})
-                                       (map second state))]
-                         [(:pos e) e]))))
+    :entities (into
+                (util/indexed-by :pos (util/all-typed :construction state))
+                (util/indexed-by :pos (util/all-typed :being state)))))
 
 (defn every-animation-frame! [state-atom]
   (swap! renderer-state (partial recalc-render @state-atom))

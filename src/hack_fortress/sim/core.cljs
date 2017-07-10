@@ -2,6 +2,7 @@
   (:require [hack-fortress.sim.render :as render]
             [hack-fortress.sim.util :as util :refer [log values]]
             [hack-fortress.sim.content :as content]
+            [hack-fortress.sim.systems.pathfinding :as pathfinding]
             [clojure.set :as set]))
 
 
@@ -11,15 +12,15 @@
                      :age   0}
 
                     {:id    :mob1
-                     :types #{:being :worker}
+                     :types #{:being :worker :moving}
                      :pos   [5 6]}
 
                     {:id    :mob2
-                     :types #{:being :worker}
+                     :types #{:being :worker :moving}
                      :pos   [3 2]}
 
                     {:id    :mob3
-                     :types #{:being :worker}
+                     :types #{:being :worker :moving}
                      :pos   [8 1]}
 
                     {:id           :wall1
@@ -68,8 +69,8 @@
   (apply swap! state update :ui fn args))
 
 (defn update-in-many [state path-fns]
-  ((apply comp (for [[p fn] path-fns]
-                 #(update-in % p fn)))
+  ((apply comp (for [[p & fn-and-args] path-fns]
+                 #(apply update-in % p fn-and-args)))
     state))
 
 (defn check-tasks-system [state]
@@ -120,15 +121,11 @@
         with-tasks (filter :_task (map #(assoc % :_task (-> state :ui :todo-list (get (:task %))))
                                        workers))
         [to-work to-move] (util/split-by-pred #(close? (:_task %) %) with-tasks)
-        to-move-upds (apply comp
-                            (for [w to-move]
-                              #(assoc-in %
-                                         [(:id w) :pos]
-                                         (step-toward (:pos w) (-> w :_task :pos)))))
         work-events (for [w to-work]
                       (dissoc (:_task w) :id))]
     (-> state
-        to-move-upds
+        (update-in-many (for [w to-move]
+                          [[(:id w)] assoc ::pathfinding/goal [::pathfinding/near (-> w :_task :pos)]]))
         (conj [:_work_events_bag
                {:id     :_work_events_bag
                 :types  #{:events_bag}
@@ -195,7 +192,9 @@
               assign-tasks-system
               perform-tasks-system
               apply-builds-system
-              apply-finish-build-system])
+              apply-finish-build-system
+
+              pathfinding/path-finding-system])
 
 (def all-systems (apply comp (reverse systems)))
 
